@@ -49,17 +49,17 @@ class VehicleViewSet(viewsets.ModelViewSet):
         
         return queryset
     
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'vehicle added successfully',
-            'status': 'success',
-            'code': 201
-        }, status=status.HTTP_201_CREATED)
+    #     return Response({
+    #         'data': serializer.data,
+    #         'message': 'vehicle added successfully',
+    #         'status': 'success',
+    #         'code': 201
+    #     }, status=status.HTTP_201_CREATED)
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -110,15 +110,56 @@ class VehicleViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
     
     def update(self, request, *args, **kwargs):
+        
+        data = request.data.copy()
+        # get category and sub_category from data and change the key to category and sub_category
+        category_id = data.pop('category_id', None)
+        sub_category_id = data.pop('sub_category_id', None)
+        
+        category = None  # Initialize category variable
+
+        if category_id is not None:
+            try:
+                category = VehicleCategory.objects.get(pk=category_id)
+                data['category'] = category.pk  # let serializer accept PK
+            except VehicleCategory.DoesNotExist:
+                return Response({
+                    'message': 'Invalid category_id',
+                    'status': 'error',
+                    'code': 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if sub_category_id is not None:
+            try:
+                sub_category = VehicleSubCategory.objects.get(pk=sub_category_id)
+
+                # Only validate if category was provided in this request
+                if category is not None and sub_category.category != category:
+                    return Response({
+                        'message': 'Sub-category does not belong to the specified category',
+                        'status': 'error',
+                        'code': 400
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except VehicleSubCategory.DoesNotExist:
+                return Response({
+                    'message': 'Invalid sub_category_id',
+                    'status': 'error',
+                    'code': 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            data['sub_category'] = sub_category.pk
+
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        # Use the modified data instead of request.data
+        serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         
         return Response({
             'data': serializer.data,
-            'message': f'vehicle {instance.vehicle_id} update successfully',
+            'message': f'vehicle {instance.vehicle_id} updated successfully',
             'status': 'success',
             'code': 200
         })
@@ -164,35 +205,49 @@ class VehicleViewSet(viewsets.ModelViewSet):
             'code': 200
         })
     
-    @action(detail=True, methods=['patch'])
+    @action(detail=True, methods=['patch', 'get'])
     def status(self, request, pk=None):
-        vehicle = self.get_object()
-        serializer = VehicleStatusSerializer(vehicle, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+
+        method = request.method
+
+        if method == 'PATCH':
+            vehicle = self.get_object()
+            serializer = VehicleStatusSerializer(vehicle, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            
+            return Response({
+                'data': serializer.data,
+                'message': f'Vehicle {vehicle.vehicle_id} availability updated successfully',
+                'status': 'success',
+                'code': 200
+            })
         
-        return Response({
-            'data': serializer.data,
-            'message': f'Vehicle {vehicle.vehicle_id} availability updated successfully',
-            'status': 'success',
-            'code': 200
-        })
+        if method == 'GET':
+            vehicle = self.get_object()
+            available_from = request.query_params.get('available_from', None)
+            available_to = request.query_params.get('available_to', None)
+            
+            if not available_from and not available_to:
+                return Response({
+                    'message': 'Available from and available to are required',
+                    'status': 'error',
+                    'code': 400
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = VehicleAvailabilitySerializer(vehicle)
+            
+            return Response({
+                'data': serializer.data,
+                'message': 'Vehicle availability details retrieved successfully',
+                'status': 'success',
+                'code': 200
+            })
+        
+
+        
+        
     
-    @action(detail=True, methods=['get'])
-    def availability(self, request, pk=None):
-        vehicle = self.get_object()
-        available_from = request.query_params.get('available_from', None)
-        available_to = request.query_params.get('available_to', None)
-        
-        # This would need to be implemented with booking logic
-        serializer = VehicleAvailabilitySerializer(vehicle)
-        
-        return Response({
-            'data': serializer.data,
-            'message': 'Vehicle availability details retrieved successfully',
-            'status': 'success',
-            'code': 200
-        })
 
 
 class VehicleCategoryViewSet(viewsets.ReadOnlyModelViewSet):
