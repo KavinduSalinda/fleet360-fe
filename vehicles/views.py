@@ -64,6 +64,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
 
+        # get category and sub_category from data and change the key to category and sub_category
         category_id = data.pop('category_id', None)
         sub_category_id = data.pop('sub_category_id', None)
 
