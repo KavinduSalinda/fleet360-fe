@@ -7,6 +7,11 @@ from django.contrib.auth import authenticate
 from .models import Document
 from .serializers import UserSerializer, LoginSerializer, PasswordChangeSerializer, DocumentSerializer
 from .authentication import generate_jwt_token
+import hashlib
+from django.core.files.base import ContentFile
+from django.conf import settings
+import time
+import os
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -109,13 +114,47 @@ class DocumentViewSet(viewsets.ModelViewSet):
         return Document.objects.filter(uploaded_by=self.request.user)
     
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(uploaded_by=request.user)
+        file = request.FILES.get('file')
+        if not file:
+            return Response({
+                'message': 'File is required',
+                'status': 'error',
+                'code': 400
+            }, status=status.HTTP_400_BAD_REQUEST)
         
+        file_name = file.name
+        file_hash = hashlib.sha256(file.read()).hexdigest()
+
+        # save the file to the media directory
+        # Convert file name + user id + current time to hash for a unique file name
+        file_hash = hashlib.md5(
+            f"{file_name}{request.user.id}{time.time()}".encode()
+        ).hexdigest()
+        file_hash = f"{file_hash}.pdf"
+
+        # Define the upload path
+        upload_path = os.path.join(settings.BASE_DIR, "media/documents/")
+
+        # Ensure the upload directory exists
+        if not os.path.exists(upload_path):
+            os.makedirs(upload_path)
+
+        # Save the file in chunks to avoid memory issues with large files
+        file_path = os.path.join(upload_path, file_hash)
+        with open(file_path, "wb") as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+
+        file_url = f'{settings.MEDIA_URL}documents/{file_hash}'
+
+        document = Document.objects.create(file_name=file_name, file_hash=file_hash, file_url=file_url, uploaded_by=request.user)
         return Response({
-            'data': serializer.data,
-            'message': 'Document Uploaded successfully',
+            'message': 'Document uploaded successfully',
             'status': 'success',
-            'code': 200
+            'code': 200,
+            'data': {
+                'file_name': file_name,
+                'file_hash': file_hash,
+                'file_url': file_url
+            }
         })
