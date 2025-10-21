@@ -65,19 +65,18 @@ class DriverViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         
+        pagination_data = self.paginator.get_custom_pagination_data()
+        
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            paginated_response = self.get_paginated_response(serializer.data)
-            paginated_response.data['message'] = 'Drivers received successfully'
-            paginated_response.data['status'] = 'success'
-            paginated_response.data['code'] = 200
-            return paginated_response
-        
-        serializer = self.get_serializer(queryset, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+            
         return StandardResponse(
             data=serializer.data,
             message='Drivers retrieved successfully',
-            code=status.HTTP_200_OK
+            code=status.HTTP_200_OK,
+            pagination=pagination_data
         )
     
     def retrieve(self, request, *args, **kwargs):

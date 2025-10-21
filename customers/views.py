@@ -65,17 +65,19 @@ class CustomerViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         
-        
+        pagination_data = self.paginator.get_custom_pagination_data()
+
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = self.get_serializer(queryset, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+            
         return StandardResponse(
             data=serializer.data,
             message='Customers retrieved successfully',
-            code=status.HTTP_200_OK
-        )
+            code=status.HTTP_200_OK,
+            pagination=pagination_data
+            )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
