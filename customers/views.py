@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from fleet360.responses import StandardResponse
 from .models import Customer
 from .serializers import CustomerSerializer, CustomerStatusSerializer
 
@@ -32,12 +33,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Data added successfully.',
-            'status': 'success',
-            'code': 201
-        }, status=status.HTTP_201_CREATED)
+        return StandardResponse(
+            data=serializer.data,
+            message='Customer created successfully',
+            code=status.HTTP_201_CREATED
+        )
     
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -46,22 +46,20 @@ class CustomerViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Data updated successfully.',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Customer updated successfully',
+            code=status.HTTP_200_OK
+        )
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
         
-        return Response({
-            'status': 'success',
-            'code': 200,
-            'message': 'Customer deleted successfully'
-        })
+        return StandardResponse(
+            message='Customer deleted successfully',
+            code=status.HTTP_200_OK
+        )
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -73,31 +71,21 @@ class CustomerViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         
         serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'data': serializer.data,
-            'pagination': {
-                'current_page': 1,
-                'total_pages': None,
-                'total_items': None,
-                'items_per_page': None,
-                'has_next': None,
-                'has_previous': None
-            },
-            'message': 'Data recieved successfully.',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Customers retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Data recieved successfully.',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Customer details retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['get', 'patch'])
     def status(self, request, pk=None):
@@ -106,12 +94,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             # Handle GET request - return customer status
             serializer = CustomerStatusSerializer(customer)
-            return Response({
-                'data': serializer.data,
-                'message': 'Data recieved successfully.',
-                'status': 'success',
-                'code': 200
-            })
+            return StandardResponse(
+                data=serializer.data,
+                message='Customer status retrieved successfully',
+                code=status.HTTP_200_OK
+            )
         
         elif request.method == 'PATCH':
             # Handle PATCH request - update customer status
@@ -119,9 +106,8 @@ class CustomerViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             
-            return Response({
-                'data': serializer.data,
-                'message': 'Data updated successfully.',
-                'status': 'success',
-                'code': 200
-            })
+            return StandardResponse(
+                data=serializer.data,
+                message='Customer status updated successfully',
+                code=status.HTTP_200_OK
+            )

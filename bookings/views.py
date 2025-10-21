@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from fleet360.responses import StandardResponse
 from .models import Booking, BookingReturn, BookingExtension, Location
 from .serializers import (
     BookingSerializer, BookingReturnSerializer, BookingExtensionSerializer,
@@ -41,12 +42,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         booking = serializer.save()
         
-        return Response({
-            'data': BookingSerializer(booking).data,
-            'message': 'Booking placed successfully',
-            'status': 'success',
-            'code': 201
-        }, status=status.HTTP_201_CREATED)
+        return StandardResponse(
+            data=BookingSerializer(booking).data,
+            message='Booking created successfully',
+            code=status.HTTP_201_CREATED
+        )
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -61,23 +61,21 @@ class BookingViewSet(viewsets.ModelViewSet):
             return paginated_response
         
         serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'data': serializer.data,
-            'message': 'Bookings retrieved successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Bookings retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = BookingDetailSerializer(instance)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Booking details recieved successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Booking details retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['post'])
     def returns(self, request, pk=None):
@@ -86,12 +84,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         return_obj = serializer.save(booking=booking)
         
-        return Response({
-            'data': serializer.data,
-            'status': 'success',
-            'code': 200,
-            'message': 'Booking has been returned successfully'
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Booking returned successfully',
+            code=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['post'])
     def extensions(self, request, pk=None):
@@ -100,12 +97,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         extension = serializer.save(booking=booking)
         
-        return Response({
-            'data': serializer.data,
-            'status': 'success',
-            'code': 200,
-            'message': 'Booking extended successfully'
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Booking extended successfully',
+            code=status.HTTP_200_OK
+        )
 
 
 class LocationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -116,9 +112,8 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         
-        return Response({
-            'data': {'locations': serializer.data},
-            'status': 'success',
-            'code': 200,
-            'message': 'Locations retrieved successfully'
-        })
+        return StandardResponse(
+            data={'locations': serializer.data},
+            message='Locations retrieved successfully',
+            code=status.HTTP_200_OK
+        )

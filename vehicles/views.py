@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from fleet360.responses import StandardResponse
 from .models import Vehicle, VehicleCategory, VehicleSubCategory
 from .serializers import (
     VehicleSerializer, VehicleStatusSerializer, 
@@ -73,28 +74,25 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 category = VehicleCategory.objects.get(pk=category_id)
                 data['category'] = category.pk  # let serializer accept PK
             except VehicleCategory.DoesNotExist:
-                return Response({
-                    'message': 'Invalid category_id',
-                    'status': 'error',
-                    'code': 400
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return StandardResponse(
+                    message='Invalid category_id',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
 
         if sub_category_id is not None:
             try:
                 sub_category = VehicleSubCategory.objects.get(pk=sub_category_id)
 
                 if sub_category.category != category:
-                    return Response({
-                        'message': 'Invalid sub_category_id',
-                        'status': 'error',
-                        'code': 400
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    return StandardResponse(
+                        message='Sub-category does not belong to the specified category',
+                        code=status.HTTP_400_BAD_REQUEST
+                    )
             except VehicleSubCategory.DoesNotExist:
-                return Response({
-                    'message': 'Invalid sub_category_id',
-                    'status': 'error',
-                    'code': 400
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return StandardResponse(
+                    message='Invalid sub_category_id',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
 
             data['sub_category'] = sub_category.pk
 
@@ -102,12 +100,11 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        return Response({
-            'data': serializer.data,
-            'message': 'vehicle added successfully',
-            'status': 'success',
-            'code': 201
-        }, status=status.HTTP_201_CREATED)
+        return StandardResponse(
+            data=serializer.data,
+            message='Vehicle created successfully',
+            code=status.HTTP_201_CREATED
+        )
     
     def update(self, request, *args, **kwargs):
         
@@ -123,11 +120,10 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 category = VehicleCategory.objects.get(pk=category_id)
                 data['category'] = category.pk  # let serializer accept PK
             except VehicleCategory.DoesNotExist:
-                return Response({
-                    'message': 'Invalid category_id',
-                    'status': 'error',
-                    'code': 400
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return StandardResponse(
+                    message='Invalid category_id',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
 
         if sub_category_id is not None:
             try:
@@ -135,17 +131,15 @@ class VehicleViewSet(viewsets.ModelViewSet):
 
                 # Only validate if category was provided in this request
                 if category is not None and sub_category.category != category:
-                    return Response({
-                        'message': 'Sub-category does not belong to the specified category',
-                        'status': 'error',
-                        'code': 400
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    return StandardResponse(
+                        message='Sub-category does not belong to the specified category',
+                        code=status.HTTP_400_BAD_REQUEST
+                    )
             except VehicleSubCategory.DoesNotExist:
-                return Response({
-                    'message': 'Invalid sub_category_id',
-                    'status': 'error',
-                    'code': 400
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return StandardResponse(
+                    message='Invalid sub_category_id',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
 
             data['sub_category'] = sub_category.pk
 
@@ -157,22 +151,20 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': f'vehicle {instance.vehicle_id} updated successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message=f'Vehicle {instance.vehicle_id} updated successfully',
+            code=status.HTTP_200_OK
+        )
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
         
-        return Response({
-            'status': 'success',
-            'code': 200,
-            'message': f'vehicle {instance.vehicle_id} deleted successfully'
-        })
+        return StandardResponse(
+            message=f'Vehicle {instance.vehicle_id} deleted successfully',
+            code=status.HTTP_200_OK
+        )
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -187,23 +179,21 @@ class VehicleViewSet(viewsets.ModelViewSet):
             return paginated_response
         
         serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'data': serializer.data,
-            'message': 'Vehicles retrieved successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Vehicles retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         
-        return Response({
-            'data': serializer.data,
-            'message': f'Vehicle {instance.vehicle_id} details retrieved successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message=f'Vehicle {instance.vehicle_id} details retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['patch', 'get'])
     def status(self, request, pk=None):
@@ -216,12 +206,11 @@ class VehicleViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             
-            return Response({
-                'data': serializer.data,
-                'message': f'Vehicle {vehicle.vehicle_id} availability updated successfully',
-                'status': 'success',
-                'code': 200
-            })
+            return StandardResponse(
+                data=serializer.data,
+                message=f'Vehicle {vehicle.vehicle_id} status updated successfully',
+                code=status.HTTP_200_OK
+            )
         
         if method == 'GET':
             vehicle = self.get_object()
@@ -229,20 +218,18 @@ class VehicleViewSet(viewsets.ModelViewSet):
             available_to = request.query_params.get('available_to', None)
             
             if not available_from and not available_to:
-                return Response({
-                    'message': 'Available from and available to are required',
-                    'status': 'error',
-                    'code': 400
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return StandardResponse(
+                    message='Available from and available to are required',
+                    code=status.HTTP_400_BAD_REQUEST
+                )
             
             serializer = VehicleAvailabilitySerializer(vehicle)
             
-            return Response({
-                'data': serializer.data,
-                'message': 'Vehicle availability details retrieved successfully',
-                'status': 'success',
-                'code': 200
-            })
+            return StandardResponse(
+                data=serializer.data,
+                message='Vehicle availability details retrieved successfully',
+                code=status.HTTP_200_OK
+            )
         
 
         
