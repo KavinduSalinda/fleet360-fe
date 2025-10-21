@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from fleet360.responses import StandardResponse
 from .models import Driver
 from .serializers import DriverSerializer, DriverAvailabilitySerializer
 
@@ -32,12 +33,11 @@ class DriverViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Driver created successfully',
-            'status': 'success',
-            'code': 201
-        }, status=status.HTTP_201_CREATED)
+        return StandardResponse(
+            data=serializer.data,
+            message='Driver created successfully',
+            code=status.HTTP_201_CREATED
+        )
     
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -46,22 +46,20 @@ class DriverViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Driver updated successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Driver updated successfully',
+            code=status.HTTP_200_OK
+        )
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
         
-        return Response({
-            'message': 'Driver deleted successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            message='Driver deleted successfully',
+            code=status.HTTP_200_OK
+        )
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -76,23 +74,21 @@ class DriverViewSet(viewsets.ModelViewSet):
             return paginated_response
         
         serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'data': serializer.data,
-            'message': 'Drivers received successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Drivers retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'Driver details received successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Driver details retrieved successfully',
+            code=status.HTTP_200_OK
+        )
     
     @action(detail=True, methods=['get'])
     def status(self, request, pk=None):
@@ -102,9 +98,8 @@ class DriverViewSet(viewsets.ModelViewSet):
         
         serializer = DriverAvailabilitySerializer(driver)
         
-        return Response({
-            'data': serializer.data,
-            'message': 'data received successfully',
-            'status': 'success',
-            'code': 200
-        })
+        return StandardResponse(
+            data=serializer.data,
+            message='Driver status retrieved successfully',
+            code=status.HTTP_200_OK
+        )

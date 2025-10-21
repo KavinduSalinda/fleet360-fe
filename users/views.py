@@ -21,6 +21,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     
+    
     def list(self, request, *args, **kwargs):
         raise MethodNotAllowed('LIST', detail="Listing all users is not allowed.")
 
@@ -43,13 +44,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         data = {
                 'access_token': token,
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'username': user.username,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name
-                }
+                'user': UserSerializer(user).data
             }
         
         return StandardResponse(
@@ -69,7 +64,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         if not user.check_password(old_password):
             return StandardResponse(
-                message="User retrieved successfully",
+                message="Invalid old password",
                 code=status.HTTP_400_BAD_REQUEST,
             )
         
@@ -77,7 +72,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
 
         return StandardResponse(
-            message="User retrieved successfully",
+            message="Password changed successfully",
             code=status.HTTP_200_OK,
         )
 
@@ -108,11 +103,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         file = request.FILES.get('file')
         if not file:
-            return Response({
-                'message': 'File is required',
-                'status': 'error',
-                'code': 400
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return StandardResponse(
+                message='File is required',
+                code=status.HTTP_400_BAD_REQUEST
+            )
         
         file_name = file.name
         file_hash = hashlib.sha256(file.read()).hexdigest()
@@ -146,7 +140,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         }
 
         return StandardResponse(
-            message="User retrieved successfully",
-            code=status.HTTP_200_OK,
+            message="Document uploaded successfully",
+            code=status.HTTP_201_CREATED,
             data=data
         )
