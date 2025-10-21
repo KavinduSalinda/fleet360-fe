@@ -46,3 +46,4 @@ class CustomerDocument(models.Model):
     
     class Meta:
         db_table = 'customer_documents'
+

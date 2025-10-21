@@ -44,3 +44,4 @@ class DriverDocument(models.Model):
     
     class Meta:
         db_table = 'driver_documents'
+

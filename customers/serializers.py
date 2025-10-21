@@ -50,3 +50,4 @@ class CustomerStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = ['customer_id', 'first_name', 'last_name', 'status', 'updated_at']
+

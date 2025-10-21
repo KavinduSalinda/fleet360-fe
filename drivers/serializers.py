@@ -49,3 +49,4 @@ class DriverAvailabilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = ['driver_id', 'is_available']
+

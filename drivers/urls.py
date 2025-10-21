@@ -8,3 +8,4 @@ router.register(r'drivers', DriverViewSet)
 urlpatterns = [
     path('', include(router.urls)),
 ]
+

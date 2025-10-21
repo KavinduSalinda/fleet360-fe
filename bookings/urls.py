@@ -9,3 +9,4 @@ urlpatterns = [
     path('', include(router.urls)),
     path('bookings/locations/', LocationViewSet.as_view({'get': 'list'}), name='booking-locations'),
 ]
+
