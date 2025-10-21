@@ -1,17 +1,19 @@
+import hashlib
+import os
+import time
+
+from django.conf import settings
+from django.contrib.auth.models import User
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from rest_framework.response import Response
+
+from fleet360.responses import StandardResponse
+from .authentication import generate_jwt_token
 from .models import Document
 from .serializers import UserSerializer, LoginSerializer, PasswordChangeSerializer, DocumentSerializer
-from .authentication import generate_jwt_token
-import hashlib
-from django.core.files.base import ContentFile
-from django.conf import settings
-import time
-import os
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -19,41 +21,17 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     
-    def get_object(self):
-        return self.request.user
-    
     def list(self, request, *args, **kwargs):
-        # Return current user's details
-        serializer = self.get_serializer(request.user)
-        return Response({
-            'data': serializer.data,
-            'message': 'Data received successfully',
-            'status': 'success',
-            'code': 200
-        })
-    
-    def retrieve(self, request, *args, **kwargs):
-        # Return current user's details
-        serializer = self.get_serializer(request.user)
-        return Response({
-            'data': serializer.data,
-            'message': 'Data received successfully',
-            'status': 'success',
-            'code': 200
-        })
-    
-    def update(self, request, *args, **kwargs):
-        # Update current user's details
-        serializer = self.get_serializer(request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        
-        return Response({
-            'data': serializer.data,
-            'message': 'User updated successfully',
-            'status': 'success',
-            'code': 200
-        })
+        raise MethodNotAllowed('LIST', detail="Listing all users is not allowed.")
+
+    def create(self, request, *args, **kwargs):
+        raise MethodNotAllowed('CREATE', detail="Creating users via this endpoint is not allowed.")
+
+    def partial_update(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PARTIAL_UPDATE', detail="Partial updates are not allowed. Use full update instead.")
+
+    def destroy(self, request, *args, **kwargs):
+        raise MethodNotAllowed('DELETE', detail="Deleting users via this endpoint is not allowed.")
     
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def login(self, request):
@@ -62,9 +40,8 @@ class UserViewSet(viewsets.ModelViewSet):
         
         user = serializer.validated_data['user']
         token = generate_jwt_token(user)
-        
-        return Response({
-            'data': {
+
+        data = {
                 'access_token': token,
                 'user': {
                     'id': user.id,
@@ -73,11 +50,13 @@ class UserViewSet(viewsets.ModelViewSet):
                     'first_name': user.first_name,
                     'last_name': user.last_name
                 }
-            },
-            'message': 'User retrieved successfully',
-            'status': 'success',
-            'code': 200
-        })
+            }
+        
+        return StandardResponse(
+            data=data,
+            message="User retrieved successfully",
+            code=status.HTTP_200_OK,
+        )
     
     @action(detail=False, methods=['post'])
     def change_password(self, request):
@@ -89,20 +68,18 @@ class UserViewSet(viewsets.ModelViewSet):
         new_password = serializer.validated_data['new_password']
         
         if not user.check_password(old_password):
-            return Response({
-                'message': 'Old password is incorrect',
-                'status': 'error',
-                'code': 400
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return StandardResponse(
+                message="User retrieved successfully",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
         
         user.set_password(new_password)
         user.save()
-        
-        return Response({
-            'message': 'Password changed successfully',
-            'status': 'success',
-            'code': 200
-        })
+
+        return StandardResponse(
+            message="User retrieved successfully",
+            code=status.HTTP_200_OK,
+        )
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -112,6 +89,21 @@ class DocumentViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return Document.objects.filter(uploaded_by=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        raise MethodNotAllowed('LIST', detail="Listing all documents is not allowed.")
+
+    def retrieve(self, request, *args, **kwargs):
+        raise MethodNotAllowed('CREATE', detail="Creating documents via this endpoint is not allowed.")
+
+    def partial_update(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PARTIAL_UPDATE', detail="Partial updates are not allowed.")
+
+    def update(self, request, *args, **kwargs):
+        raise MethodNotAllowed('UPDATE', detail="Updating documents is not allowed.")
+
+    def destroy(self, request, *args, **kwargs):
+        raise MethodNotAllowed('DELETE', detail="Deleting users via this endpoint is not allowed.")
     
     def create(self, request, *args, **kwargs):
         file = request.FILES.get('file')
@@ -146,15 +138,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 f.write(chunk)
 
         file_url = f'{settings.MEDIA_URL}documents/{file_hash}'
-
         document = Document.objects.create(file_name=file_name, file_hash=file_hash, file_url=file_url, uploaded_by=request.user)
-        return Response({
-            'message': 'Document uploaded successfully',
-            'status': 'success',
-            'code': 200,
-            'data': {
-                'file_name': file_name,
-                'file_hash': file_hash,
-                'file_url': file_url
-            }
-        })
+        data = {
+            'file_name': file_name,
+            'file_hash': file_hash,
+            'file_url': file_url
+        }
+
+        return StandardResponse(
+            message="User retrieved successfully",
+            code=status.HTTP_200_OK,
+            data=data
+        )
