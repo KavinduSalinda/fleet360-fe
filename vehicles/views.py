@@ -3,8 +3,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from datetime import date
 from fleet360.responses import StandardResponse
 from .models import Vehicle, VehicleCategory, VehicleSubCategory
+from bookings.models import Booking
 from .serializers import (
     VehicleSerializer, VehicleStatusSerializer, 
     VehicleAvailabilitySerializer, VehicleCategorySerializer,
@@ -23,7 +25,24 @@ class VehicleViewSet(viewsets.ModelViewSet):
         category = self.request.query_params.get('category', None)
         sub_category = self.request.query_params.get('sub_category', None)
         fuel_type = self.request.query_params.get('fuel_type', None)
-        available = self.request.query_params.get('available', None)
+        pickup_date = self.request.query_params.get('pickup_date', None)
+        dropoff_date = self.request.query_params.get('dropoff_date', None)
+
+        # Parse custom date format (YYYYMMDD) to standard date format
+        def parse_custom_date(date_str):
+            if date_str and len(date_str) == 8:
+                try:
+                    year = int(date_str[:4])
+                    month = int(date_str[4:6])
+                    day = int(date_str[6:8])
+                    return date(year, month, day)
+                except ValueError:
+                    return None
+            return None
+
+        # Store date parameters for serializer to use
+        self.pickup_date = pickup_date
+        self.dropoff_date = dropoff_date
         
         if query:
             queryset = queryset.filter(
@@ -42,25 +61,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         if fuel_type:
             queryset = queryset.filter(fuel_type__iexact=fuel_type)
         
-        if available:
-            if available.lower() == 'true':
-                queryset = queryset.filter(is_undermaintanace=False, status='available')
-            elif available.lower() == 'false':
-                queryset = queryset.filter(Q(is_undermaintanace=True) | ~Q(status='available'))
-        
         return queryset
-    
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-        
-    #     return Response({
-    #         'data': serializer.data,
-    #         'message': 'vehicle added successfully',
-    #         'status': 'success',
-    #         'code': 201
-    #     }, status=status.HTTP_201_CREATED)
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -172,10 +173,16 @@ class VehicleViewSet(viewsets.ModelViewSet):
         
         pagination_data = self.paginator.get_custom_pagination_data()
         
+        # Pass date parameters to serializer context
+        serializer_context = {
+            'pickup_date': getattr(self, 'pickup_date', None),
+            'dropoff_date': getattr(self, 'dropoff_date', None)
+        }
+        
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context=serializer_context)
         else:
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = self.get_serializer(queryset, many=True, context=serializer_context)
 
         return StandardResponse(
             data=serializer.data,
@@ -186,7 +193,14 @@ class VehicleViewSet(viewsets.ModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        
+        # Pass date parameters to serializer context
+        serializer_context = {
+            'pickup_date': getattr(self, 'pickup_date', None),
+            'dropoff_date': getattr(self, 'dropoff_date', None)
+        }
+        
+        serializer = self.get_serializer(instance, context=serializer_context)
         
         return StandardResponse(
             data=serializer.data,

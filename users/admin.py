@@ -15,7 +15,7 @@ class CustomUserAdmin(UserAdmin):
     ordering = ['username']
     
     fieldsets = UserAdmin.fieldsets + (
-        ('Additional Info', {'fields': ('phone_number',)}),
+        ('Additional info', {'fields': ('phone_number',)}),
     )
 
 @admin.register(Document)
