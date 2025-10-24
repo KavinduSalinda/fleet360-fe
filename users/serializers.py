@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 from django.contrib.auth import authenticate
 from .models import Document
 from .authentication import generate_jwt_token
@@ -8,7 +10,7 @@ from .authentication import generate_jwt_token
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number']
     
     def update(self, instance, validated_data):
         # Update user fields

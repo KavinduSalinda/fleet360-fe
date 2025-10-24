@@ -3,7 +3,9 @@ import os
 import time
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed
@@ -12,7 +14,7 @@ from rest_framework.response import Response
 
 from fleet360.responses import StandardResponse
 from .authentication import generate_jwt_token
-from .models import Document
+from .models import Document, CustomUser
 from .serializers import UserSerializer, LoginSerializer, PasswordChangeSerializer, DocumentSerializer
 
 
@@ -116,7 +118,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         file_hash = hashlib.md5(
             f"{file_name}{request.user.id}{time.time()}".encode()
         ).hexdigest()
-        file_hash = f"{file_hash}.pdf"
+        file_hash = f"{file_hash}.{file.name.split('.')[-1]}"
 
         # Define the upload path
         upload_path = os.path.join(settings.BASE_DIR, "media/documents/")
